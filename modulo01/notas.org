@@ -1,0 +1,214 @@
+#+TITLE: Notas Módulo 1
+#+AUTHOR: Lucas S. Vieira
+#+EMAIL: lucasvieira@protonmail.com
+#+PROPERTY: header-args :eval no
+
+
+* Inicialização do repositório
+
+Ligeiramente diferente do uso de node cru.
+
+#+begin_src bash
+yarn init -y
+#+end_src
+
+* Adicionando uma dependência ao projeto
+
+Também diferente com yarn.
+
+#+begin_src bash
+yarn add express
+#+end_src
+
+Em linhas gerais, a execução do comando =yarn= em um projeto
+redistribuido é o suficiente para que as dependências sejam
+instaladas, uma vez listadas em =package.json=.
+
+* Criando o código
+
+Veja arquivo =index.js=. Como já utilizei Express antes, é desnecessário
+me extender.
+
+** Usando o objeto para respostas
+
+=response.send= retorna texto plano.
+
+#+begin_src js
+server.get('/teste', (req, res) => {
+    return req.send('Hello world');
+});
+#+end_src
+
+=response.json= retorna um objeto em formato JSON.
+
+#+begin_src js
+server.get('/teste', (req, res) => {
+    return req.json({ message: 'Hello world' });
+});
+#+end_src
+
+** Obtendo parâmetros da requisição
+
+Três tipos:
+
+1. /Query params/: Enviados utilizando o caractere =?=. Ex:
+   ~/rota?param=valor~
+2. /Route params/: Enviados em frente à rota. Ex: ~/users/1~
+3. /Request body/: Corpo da requisição, em formato de objeto JSON.
+
+*** Consumindo query params
+
+#+begin_src js
+// Ex. /users?name=AlgumNome
+server.get('/users', (req, res) => {
+    req.query.name;
+});
+#+end_src
+
+*** Consumindo route params
+
+O /route param/ vem pré-definido no nome da rota.
+
+#+begin_src js
+// Ex. /users/1
+// :id simboliza o route param homônimo
+server.get('/users/:id', (req, res) => {
+    const id = req.params.id;
+    // etc.
+});
+#+end_src
+
+Alternativamente, com desestruturação (ES6):
+
+#+begin_src js
+const { id } = req.params;
+#+end_src
+
+* Reiniciando o servidor automaticamente
+
+Podemos usar Nodemon para tal.
+
+Instalaremos o Nodemon em modo de desenvolvimento; em outras palavras,
+esta dependência não será utilizada em produção.
+
+#+begin_src bash
+yarn add nodemon -D
+#+end_src
+
+** Executando
+
+Para executar diretamente, use o yarn como intermédio.
+
+#+begin_src bash
+yarn nodemon index.js
+#+end_src
+
+Outra ideia é ir ao index.json, e adicionar um campo /scripts/ que
+automatize parte deste processo. Desta forma:
+
+#+begin_src json
+{
+    "scripts": {
+	    "server": "nodemon index.js"
+	}
+}
+#+end_src
+
+Assim, basta executar o comando a seguir:
+
+#+begin_src bash
+yarn server
+#+end_src
+
+* CRUD
+
+- =GET=: Para obter dados.
+- =POST=: Para criar elementos.
+- =PUT=: Para atualizar elementos.
+- =DELETE=: Para remover elementos.
+
+** Obtendo o request body
+
+Basta obter diretamente de =request.body=. Veja que é possível fazer
+desestruturação também:
+
+#+begin_src js
+const { campo } = request.body;
+#+end_src
+
+É importante notar que o Express exige que o uso de JSON no corpo da
+requisição seja informado de forma explícita. Veja o código a seguir:
+
+#+begin_src js
+const express = require('express');
+const server = express();
+server.use(express.json());
+#+end_src
+
+* Middlewares
+
+Middlewares recebem as requisições e respostas, e realizam alguma
+manipulação intermediária na aplicação. Isto inclui manipular
+parâmetros repassados a ele, especialmente os de requisição.
+
+** Middlewares globais
+
+Podemos criar /middlewares globais/, por exemplo. Neste caso, o
+middleware realizará alguma manipulação em *todas* as rotas.
+
+Criar o /middleware/ é muito simples, e parece bastante o uso explícito
+de JSON (que também é um middleware):
+
+#+begin_src js
+// Middleware de logging de método e URL
+server.use((req, res, next) => {
+    console.log(`Método: ${req.method}; URL: ${req.url}`);
+    return next();
+});
+#+end_src
+
+Veja que este middleware não bloqueia a requisição. Seria possível
+bloqueá-la através de retornar algo imediatamente
+(ex. =req.json(...)=). Isto realiza um retorno para toda e qualquer
+rota.
+
+Também é interessante notar que, uma vez que =next= é chamado, o
+middleware não está restrito a ser encerrado imediatamente; podemos
+executar mais operações após isto ser feito. Assim, o restante do
+middleware será executado após a rota específica ser finalizada.
+
+O exemplo a seguir contabiliza o tempo de execução para todas as
+rotas, realizando logging de tempo.
+
+#+begin_src js
+server.use((req, res, next) => {
+    console.time('Request');
+    console.log(`Método: ${req.method}; URL: ${req.url}`);
+    next();
+    console.timeEnd('Request');
+});
+#+end_src
+
+** Middlewares locais
+
+Middlewares locais são aplicados diretamente em rotas específicas.
+
+Por exemplo, podemos validar a existência do usuário através de um
+middleware local.
+
+#+begin_src js
+const checkUserExists = (req, res, next) => {
+    if(!req.body.user) {
+        return res.status(400)
+            .json({ error: 'User name is required' });
+    }
+    return next();
+};
+
+// Na rota
+server.post('/users', checkUserExists, (req, res) => { ... });
+#+end_src
+
+Interessante notar que, em uma rota, é possível colocar um número
+não-especificado de middlewares antes do callback específico para a
+rota.

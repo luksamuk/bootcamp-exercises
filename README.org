@@ -1,0 +1,36 @@
+#+TITLE:  Bootcamp - Exercícios
+#+AUTHOR: Lucas S. Vieira
+#+EMAIL:  lucasvieira@protonmail.com
+
+* Introdução
+
+Este repositório compreende notas, exercícios e projetos feitos a
+partir do Bootcamp da RocketSeat.
+
+O repositório divide-se entre pastas de projetos, que podem ser
+/módulos/ ou /desafios/. Cada /módulo/ está diretamente relacionado a
+módulos de aulas do curso, sendo códigos criados com o intuito de
+estudo. Além do mais, os módulos também possuem arquivos de notas em
+texto-plano (arquivos .org), melhor visualizados no editor de texto
+Emacs.
+
+Diretórios com o nome de /desafio/ compreendem códigos para os desafios
+específicos do Bootcamp ao qual seu nome está associado.
+
+* Relação de projetos
+
+/Progresso atual/: Parte 4 do módulo de Node.js.
+
+** Módulos
+
+- =modulo01=: Módulo 1 - Node.js
+
+** Desafios
+
+- =desafio01=: Desafio 1 - Conceitos de Node.js
+
+* Licenciamento
+
+Todo código aqui gerado está licenciado sob a licença MIT, sendo
+portanto código aberto. Para mais informações, veja o arquivo [[LICENSE]].
+
