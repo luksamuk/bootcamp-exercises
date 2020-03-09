@@ -765,3 +765,81 @@ coluna.
 O segundo objeto exige que passemos adiante o parâmetro =sequelize=, e
 também pode ser utilizado para outras configurações como modificar o
 tome da tabela, /collate/, /charset/, etc.
+
+* Criando carregador de Models
+
+Criaremos um arquivo =src/database/index.js=. Neste arquivo,
+realizaremos a conexão com o banco de dados e carregaremos os /models/.
+
+Neste arquivo, criamos uma classe =Database=, que estabelece a conexão
+com o banco de dados e carrega cada um dos /models/ da aplicação.
+
+#+begin_src js
+import Sequelize from 'sequelize';
+
+import User from '../app/models/User';
+
+import databaseConfig from '../config/database';
+
+const models = [User];
+
+class Database {
+    constructor() {
+        this.init();
+    }
+
+    init() {
+        this.connection = new Sequelize(databaseConfig);
+        models.forEach(model => model.init(this.connection));
+    }
+}
+
+export default new Database();
+#+end_src
+
+Este módulo será chamado em =app.js=. Basta importar o módulo com:
+
+#+begin_src js
+import './database';
+#+end_src
+
+Não será necessário tomar o retorno desta importação. Neste momento, a
+conexão com o banco de dados já terá sido estabelecida, e os modelos
+terão sido carregados.
+
+** Testando
+
+Em =routes.js=, importamos o modelo de usuário. Podemos testar o modelo
+na rota previamente criada (=GET /=). Para tanto, tornamos a função da
+rota assíncrona (palavra-chave =async=), uma vez que precisaremos
+utilizar um =await= para todas as operações que serão realizadas no
+banco de dados. A rota ficaria dessa forma:
+
+#+begin_src js
+routes.get('/', async (req, res) => {
+    const user = await User.create({
+        name: 'Fulano de Tal',
+        email: 'fulano@exemplo.com',
+        password_hash: '12341234123',
+    });
+    return res.json(user);
+});
+#+end_src
+
+Veja que =User.create= cria um usuário propriamente dito no banco de
+dados. Como essa operação precisa ser /assíncrona/, utilizamos a
+palavra-chave =await= para esperar pela resposta do banco de dados, que
+pode ser um pouco demorada.
+
+Basta então lançar o servidor e dar um =GET= request em =localhost:3333=.
+
+Por padrão, durante o desenvolvimento, o Sequelize mostra o log das
+queries executadas no console, sem os valores:
+
+#+begin_src text
+Executing (default): INSERT INTO "users" ("id","name","email","password_hash","cre
+ated_at","updated_at") VALUES (DEFAULT,$1,$2,$3,$4,$5) RETURNING *;    
+#+end_src
+
+A aba /Content/ do Postbird também pode ser utilizada para verificar se
+os dados foram criados.
