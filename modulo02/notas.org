@@ -1,0 +1,552 @@
+#+TITLE: Notas Módulo 2
+#+AUTHOR: Lucas S. Vieira
+#+EMAIL: lucasvieira@protonmail.com
+#+PROPERTY: header-args :eval no
+
+* Introdução
+
+Aqui iniciaremos o desenvolvimento do GoBarber.
+
+Começamos iniciando um novo projeto com o yarn.
+
+* Dependências
+
+Utilizaremos praticamente só o Express.
+
+* Estrutura
+
+Separaremos os arquivos de código em =src/=.
+
+Em =src/=, teremos os arquivos
+
+- =routes.js=: Rotas do servidor. Tomamos um ~Router~ do Express para
+  tal.
+- =app.js=: Importa as rotas e cria uma definição de classe ~App~, que
+  inicializa um servidor Express com suas demais rotas e
+  middlewares. Exporta o servidor Express (existente em uma instância)
+  em si.
+- =server.js=: Toma o servidor Express anterior e inicia a escuta na
+  porta ~3333~.
+
+** Motivo para uso da estrutura
+
+Esta estrutura é benéfica posteriormente para testes unitários
+(funcionais, integração, etc). Por este motivo, a própria escuta do
+servidor é inicializada /fora da classe/ do aplicativo em si -- algo
+desnecessário nos testes.
+
+* Nodemon & Sucrase
+
+Sucrase insere algumas funcionalidades recentes de JavaScript ao
+Node.js. É similar a Babel/Babel Node.
+
+#+begin_src bash
+yarn add sucrase nodemon -D
+#+end_src
+
+O Sucrase permite que transformemos
+
+#+begin_src js
+const express    = require('express');
+const { Router } = require('express');
+
+const routes = new Router();
+
+...
+
+module.exports = routes;
+#+end_src
+
+em
+
+#+begin_src js
+import express from 'express';
+import { Router } from 'express';
+
+const routes = new Router();
+
+...
+
+export default routes;
+#+end_src
+
+Para executar com o Sucrase, podemos utilizar este comando:
+
+#+begin_src bash
+yarn sucrase-node src/server.js
+#+end_src
+
+Precisaremos configurar o Nodemon para que utilize o Sucrase.
+
+Primeiramente, é essencial que adicionemos um script para executarmos
+o Nodemon a partir do Yarn, em =package.json=:
+
+#+begin_src json
+{
+    "scripts": {
+	"server": "nodemon src/server.js"
+    },
+}
+#+end_src
+
+Em seguida, criaremos um arquivo =nodemon.json= para a configuração do
+Nodemon, a fim de que utilize o Sucrase. Este arquivo conterá o
+seguinte:
+
+#+begin_src json
+{
+    "execMap": {
+	"js": "node -r sucrase/register"
+    }
+}
+#+end_src
+
+Isto fará com que o Node /registre/ o arquivo com o Sucrase antes de
+executá-lo, para que a sintaxe seja validada.
+
+Neste momento, executar =yarn server= será o suficiente para testarmos
+nosso servidor.
+
+* Docker
+
+Docker é utilizado para a criação de /ambientes isolados/, também
+conhecidos como /contêineres/.
+
+Contêineres expõem portas de comunicação que podemos utilizar
+externamente.
+
+/Imagens/ do Docker são ferramentas e tecnologias que podemos colocar em
+contêineres. Portanto, contêineres são /instâncias de imagens/.
+
+Imagens podem facilmente ser encontradas no DockerHub (Docker
+Registry). Para tanto, criamos /receitas/ de imagens, salvas em arquivos
+=Dockerfile=.
+
+Abaixo, temos um exemplo de Dockerfile.
+
+#+begin_src dockerfile
+# Partindo de uma imagem existente
+FROM node:10
+
+# Pasta da aplicação no contêiner
+WORKDIR /usr/app
+
+# Cópia dos arquivos
+COPY . ./
+
+# Instalação das dependências (via Yarn)
+RUN yarn
+
+# Exposição da porta do serviço
+EXPOSE 3333
+
+# Execução da aplicação
+CMD yarn server
+#+end_src
+
+** Usando PostgreSQL pelo Docker
+
+Vamos usar a imagem Docker do [[https://hub.docker.com/_/postgres][PostgreSQL]]. É importante ler as
+instruções de uso deste contêiner para instanciamento do PostgreSQL e
+outras informações.
+
+Usaremos este comando:
+
+#+begin_src bash
+docker run --name database -e POSTGRES_PASSWORD=docker -p 5432:5432 -d postgres:11
+#+end_src
+
+Destrinchando-o, saberemos alguns parâmetros interessantes:
+
+- =--name database=: Define o nome para o contêiner. Útil para separar
+  contêineres e poder referenciá-los. O nome será ~database~, neste
+  caso.
+- ~-e POSTGRES_PASSWORD=docker~: ~-e~ define variáveis de ambiente; neste
+  caso, apenas ~POSTGRES_PASSWORD~.
+- ~-p 5432:5432~: Realiza um redirecionamento de porta. No caso, isto
+  define que a porta ~5432~ do computador (a primeira) seja
+  redirecionada para a porta ~5432~ do contêiner (a segunda).
+- ~-d postgres:11~: Este parâmetro define o nome da imagem. O sufixo ~:11~
+  especifica uma versão específica para esta imagem.
+
+Para verificar a saúde de execução dos contêineres, basta executarmos
+o comando:
+
+#+begin_src bash
+docker ps
+#+end_src
+
+Isto listará todos os contêineres ativos na máquina.
+
+** Testando se o PostgreSQL está funcionando
+
+Podemos utilizar o [[https://www.electronjs.org/apps/postbird][Postbird]] para acessarmos o Postgres. Basta
+utilizarmos o username =postgres= e a senha =docker=, como anteriormente
+definidos. Lá, clicamos em *Save & Connect*.
+
+Ali, criamos também uma nova base de dados, chamada =gobarber=. Para
+tanto, basta selecionar /Create Database.../ na caixa /Select
+database/. Não é necessário usar templates, e a codificação poderá
+continuar como UTF-8.
+
+As tabelas do banco de dados serão criados pela aplicação, então nada
+precisaremos fazer a mais.
+
+*** Nota aleatória
+
+Eu tinha 33 contêineres aqui que não serviam pra absolutamente nada, e
+eles estavam lotando a saída do meu =docker ps -a= (que lista todos os
+contêineres na máquina). Então, eu excluí eles a partir da saída desse
+comando:
+
+#+begin_src bash
+docker ps -a | tail -n 33 | awk '{print $NF}' | xargs -n33 -t docker rm
+#+end_src
+
+Só uma curiosidade interessante, mesmo.
+
+** Controlando o contêiner
+
+Para parar o contêiner, podemos usar o comando:
+
+#+begin_src bash
+docker stop database
+#+end_src
+
+É interessante ressaltar que o contêiner será parado de forma brusca
+mediante reinicialização, também.
+
+Para reiniciar o contêiner, utilizamos:
+
+#+begin_src bash
+docker start database
+#+end_src
+
+Para vermos informações de execução ou erro do contêiner, podemos
+utilizar:
+
+#+begin_src bash
+docker logs database
+#+end_src
+
+É interessante lembrar que esta configuração não foi criada de forma a
+permitir que um banco de dados só responda a uma aplicação, porém este
+seria o curso recomendado para tal; desta forma, outros bancos de
+dados não poderiam ser afetados pela aplicação atual.
+
+* Sequelize & MVC
+
+** Sequelize
+
+/Sequelize/ é um ORM para Node.js para bancos de dados relacionais, e
+funciona com MySQL, PostgreSQL, SQLite, etc.
+
+/ORM/ é uma forma de abstração de bancos de dados. As tabelas do banco
+de dados viram *models*.
+
+A ideia do ORM é utilizar apenas a linguagem-base, sem o uso de SQL.
+
+Assim, um código SQL como:
+
+#+begin_src sql
+INSERT INTO users (name, email)
+       VALUES (
+           "Fulano",
+	     "fulano@exemplo.com")
+#+end_src
+
+torna-se código JavaScript similar a:
+
+#+begin_src js
+User.create({
+    name:  "Fulano",
+    email: "fulano@exemplo.com",
+});
+#+end_src
+
+Em uma busca de dados, um código SQL como:
+
+#+begin_src sql
+SELECT * FROM users
+WHERE email = "fulano@exemplo.com"
+LIMIT 1
+#+end_src
+
+torna-se um código JavaScript similar a:
+
+#+begin_src js
+User.findOne({
+    where: {
+	email: "fulano@exemplo.com",
+    }
+});
+#+end_src
+
+** Migrations
+
+*Migrations* são um /controle de versão/ para bases de dados. Assim, a
+ base de dados mantém-se atualizada entre os desenvolvedores de um
+ projeto, e entre os ambientes de /desenvolvimento/ e /produção/.
+
+Cada arquivo da /migration/ contém instruções de criação, alteração ou
+remoção de tabelas e colunas. A ordenação destes arquivos ocorre por
+data. Assim, uma /migration/ não pode depender de uma /migration/ no
+futuro.
+
+É uma boa prática minimizar o gerenciamento de tabelas por migration
+(ex., uma tabela por migration).
+
+Podemos utilizar o próprio /Sequelize/ para migrations.
+
+Uma migration instrui como *criar* uma tabela (método /up/) e como
+realizar *rollback* (método /down/).
+
+Após uma migration ser repassada para outros desenvolvedores e/ou para
+o ambiente de produção, *JAMAIS MODIFIQUE* esta migration. Caso
+necessário, crie *outra migration*.
+
+** Seeds
+
+*Seeds* são dados fictícios para popular a base de dados para
+ desenvolvimento, particularmente úteis em testes.
+
+Seeds são executáveis apenas por código, e jamais devem ser utilizados
+em produção; caso os dados de alguma seed precise ir para produção, as
+próprias /migrations/ podem manipular estes dados nas tabelas.
+
+** Arquitetura MVC
+
+É uma forma de estruturar as pastas e arquivos da aplicação,
+estruturando as responsabilidades de cada tipo de arquivo. Aqui,
+possuímos três agentes principais:
+
+- *Model*: Armazena as abstrações do BD. Usado para manipular os dados
+  nas tabelas. Não possui responsabilidade sobre a regra de negócio da
+  aplicação (ex: o Model não envia um e-mail de boas-vindas na
+  operação de cadastro).
+- *Controller*: Ponto de entrada das requisições da
+  aplicação. Normalmente, uma rota está associada com um método do
+  Controller. Inclui a grande parte das regras de negócio da
+  aplicação (conforme a aplicação cresce, poderemos isolar estas
+  regras).
+- *View*: Retorno ao cliente. Em aplicações não-REST, poderia ser um
+  HTML; no nosso caso, é apenas um JSON retornado ao front-end, que
+  posteriormente será manipulado por ReactJS ou React Native.
+
+*** Face de um Controller
+
+É uma classe. Sempre retorna um JSON (tanto para sucesso quanto para
+erro), e nunca invoca outro Controller (método).
+
+Criamos um novo Controller quando tivermos uma nova /entidade/ -- o que
+não é o mesmo que um Model, mas cada Model normalmente possui seu
+próprio Controller. Todavia, um Controller pode não possuir Model
+associado. Ex: em uma aplicação com /autenticação/, podemos ter um
+=SessionController= para o usuário autenticado, o que não seria um
+=UserController=, que estaria associado ao Model =User=.
+
+Um Controller possui *no máximo cinco métodos*. Mais métodos que esses
+indicam que estamos falando de /outra entidade/. Os métodos são:
+
+- *index*;
+- *show*;
+- *store*;
+- *update*;
+- *delete*.
+
+Como exemplo, vejamos um modelo de Controller para um User de um BD,
+bem como suas funcionalidades assumidas:
+
+#+begin_src js
+class UserController
+{
+    // Listagem de usuários
+    index() {}
+
+    // Exibir um único usuário
+    show() {}
+
+    // Cadastrar usuário
+    store() {}
+
+    // Alterar usuário
+    update() {}
+
+    // Remover usuário
+    delete() {}
+}
+#+end_src
+
+* ESLint, Pretties e EditorConfig
+
+** ESLint
+
+Vamos adicionar o =eslint= às dependências de desenvolvimento e
+selecionaremos o padrão de código Airbnb.
+
+#+begin_src bash
+yarn add eslint -D
+#+end_src
+
+Após esta operação, executaremos o ESLint pelo console. Basta então
+seguir o passo a passo.
+
+#+begin_src bash
+yarn eslint --init
+#+end_src
+
+1. =To check syntax, find problems, and enforce code style=;
+2. =JavaScript modules=;
+3. Frameworks: =None of these=;
+4. Sem suporte a TypeScript;
+5. Desselecionar =Browser= com barra de espaço, selecionar =Node=;
+6. =Use a popular style guide= e selecionar Airbnb;
+7. Formato de configuração: =JavaScript=;
+
+Instale as dependências com =npm= como requisitado. Porém, logo em
+seguida, isto criará um arquivo =package-lock.json=; delete-o, e
+execute:
+
+#+begin_src bash
+yarn
+#+end_src
+
+Isto adicionará as dependências ao =yarn.lock=.
+
+Um arquivo =.eslintrc.js= será criado. Ali, faremos as alterações de
+estilo.
+
+No VSCode, é necessário ter a extensão ESLint. No Emacs, podemos usar
+=flymake-eslint=, mas isto exige que o =eslint= esteja instalado
+globalmente via =npm= (o que não é um problema...).
+
+Pessoalmente, em ="rules"=, eu coloquei...
+
+#+begin_src json
+{
+    "indent": ["error", 4],
+}
+#+end_src
+
+...porque eu sou o maluco da indentação com quatro espaços.
+
+No VSCode, é possível configurar o =eslint= para que formate o código no
+salvamento. Eu não gosto desse tipo de coisa! Então eu pesquisei o que
+fazer para consertar isso manualmente, via console. Basta executar:
+
+#+begin_src bash
+yarn eslint --fix src/arquivo.js
+#+end_src
+
+*** Regras extras
+
+Algumas regras extras sugeridas. Coloque-as no elemento ="rules"=:
+
+#+begin_src json
+{
+    "class-method-use-this": "off",
+}
+#+end_src
+
+Remove o reforço do uso da keyword =this= nos métodos de uma classe.
+
+#+begin_src json
+{
+    "no-param-reassign": "off",
+}
+#+end_src
+
+Permite realizar alterações em um parâmetro recebido.
+
+#+begin_src json
+{
+    "camelcase": "off",
+}
+#+end_src
+
+Desabilita a exigência de CamelCase para variáveis.
+
+#+begin_src json
+{
+    "no-unused-vars": ["error", { "argsIgnorePattern": "next" }],
+}
+#+end_src
+
+Dispensa o uso de variáveis utilizadas apenas para variáveis chamadas
+=next=. Útil em alguns /middlewares/, onde não for utilizado o callback
+=next=.
+
+** Prettier
+
+O Prettier ajuda a embelezar o código (ex. linhas muito grandes), e
+integra com o ESLint. Vamos instalá-lo:
+
+#+begin_src bash
+yarn add prettier eslint-config-prettier eslint-plugin-prettier -D
+#+end_src
+
+Vamos ao =.eslintrc.js= novamente. Ali, transforme o campo ="extends"= em
+um /array/ e adicione ='prettier'= como segundo parâmetro do
+/array/. Adicionalmente, declare uma propriedade ="plugins"= e insira
+='prettier'= também.
+
+Por fim, adicione a regra:
+
+#+begin_src json
+{
+    "prettier/prettier": "error",
+}
+#+end_src
+
+Vamos sobrescrever algumas regras, criando um arquivo
+=.prettierrc=. Vejamos:
+
+#+begin_src json
+{
+    "singleQuote":   true,
+    "trailingComma": "es5",
+}
+#+end_src
+
+Como eu sou o doido dos quatro espaços de indentação, adiciono estas
+propriedades:
+
+#+begin_src json
+{
+    "tabWidth": 4,
+    "useTabs":  false,
+}
+#+end_src
+
+** ESLint automático em um diretório
+
+Para executar o ESLint em todos os arquivos .js do diretório =src/=:
+
+#+begin_src bash
+yarn eslint --fix src --ext .js
+#+end_src
+
+O ESLint tentará consertar automaticamente tudo o que puder nos
+códigos JavaScript de =src/=.
+
+** [VSCode apenas] EditorConfig
+
+Essa extensão do VSCode garante que todos os editores estejam
+configurados da mesma forma.
+
+Isso é meio balela, mas vou colocar aqui o conteúdo do meu
+=.editorconfig= que criei manualmente:
+
+#+begin_src fundamental
+root = true
+
+[*]
+indent_style = space
+indent_size  = 4
+charset      = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+#+end_src
+
+* Configurando o Sequelize
+

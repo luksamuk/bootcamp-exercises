@@ -19,11 +19,12 @@ específicos do Bootcamp ao qual seu nome está associado.
 
 * Relação de projetos
 
-/Progresso atual/: Parte 4 do módulo de Node.js.
+/Progresso atual/: Fase 2, Parte 5, Vídeo 7.
 
 ** Módulos
 
 - =modulo01=: Módulo 1 - Node.js
+- =modulo02=: Módulo 2 - GoBarber
 
 ** Desafios
 
