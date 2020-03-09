@@ -727,3 +727,41 @@ Para desfazer *todas* as migrations:
 yarn sequelize db:migrate:undo:all
 #+end_src
 
+* Model de usuário
+
+Em =src/app/models=, crie um novo arquivo chamado =User.js=.
+
+Neste arquivo, vamos tomar os elementos =Sequelize= e =Model= da
+biblioteca =sequelize=, e criaremos uma classe =User= que extende
+=Model=. Nesta classe, criaremos um método estático =init=, que invocará
+=super.init=. Desta forma:
+
+#+begin_src js
+import Sequelize, { Model } from 'sequelize';
+
+class User extends Model {
+    static init(sequelize) {
+        super.init(
+            {
+                name: Sequelize.STRING,
+                email: Sequelize.STRING,
+                password_hash: Sequelize.STRING,
+                provider: Sequelize.BOOLEAN,
+            },
+            {
+                sequelize,
+            }
+        );
+    }
+}
+
+export default User;
+#+end_src
+
+Nesta invocação, passaremos dois objetos como valores. O primeiro
+objeto institui todas as colunas da tabela, e destaca os tipos de cada
+coluna. 
+
+O segundo objeto exige que passemos adiante o parâmetro =sequelize=, e
+também pode ser utilizado para outras configurações como modificar o
+tome da tabela, /collate/, /charset/, etc.
