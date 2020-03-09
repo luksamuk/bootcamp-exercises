@@ -633,3 +633,97 @@ module.exports = {
     },
 };
 #+end_src
+
+* Migration de usuário
+
+Criaremos nossa primeira /migration/ para criarmos a tabela de usuários
+da aplicação.
+
+Podemos automatizar esse processo usando o =sequelize-cli=. Por ser uma
+migration que /cria/ a tabela de usuários, damos a ela o nome
+=create-users=:
+
+#+begin_src bash
+yarn sequelize migration:create --name=create-users
+#+end_src
+
+Em =src/database/migrations=, um arquivo será criado.
+
+Abrindo o arquivo, des-comente o exemplo para os métodos =up= e =down=. Em
+=down=, como não vamos utilizar o parâmetro =Sequelize=, podemos
+removê-lo; de resto, confie no =eslint=.
+
+Também configuramos, no método =up=, os seguintes campos:
+
+- =id=: Inteiro, não permite valores nulos, auto-incremental, chave
+  primária.
+- =name=: String, não permite valores nulos.
+- =email=: String, não permite valores nulos, único.
+- =password_hash=: String, não permite valores nulos.
+- =provider=: Booleano, não permite valores nulos, valor padrão
+  =FALSE=. Diz respeito ao provedor, que pode ser um   /cliente/ ou um
+  /prestador de serviços/ da aplicação; para um prestador de serviços,
+  este campo valerá =TRUE=.
+- =created_at=, =updated_at=: Date, não permite valores nulos.
+
+Abaixo, temos o estado do código do método =up=.
+
+#+begin_src js
+(queryInterface, Sequelize) => {
+    return queryInterface.createTable('users', {
+        id: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            autoIncrement: true,
+            primaryKey: true,
+        },
+        name: {
+            type: Sequelize.STRING,
+            allowNull: false,
+        },
+        email: {
+            type: Sequelize.STRING,
+            allowNull: false,
+            unique: true,
+        },
+        password_hash: {
+            type: Sequelize.STRING,
+            allowNull: false,
+        },
+        provider: {
+            type: Sequelize.BOOLEAN,
+            defaultValue: false,
+            allowNull: false,
+        },
+        created_at: {
+            type: Sequelize.DATE,
+            allowNull: false,
+        },
+        updated_at: {
+            type: Sequelize.DATE,
+            allowNull: false,
+        },
+    });
+}
+#+end_src
+
+** Executando a migration
+
+Para executarmos a migration, basta utilizarmos o seguinte comando:
+
+#+begin_src bash
+yarn sequelize db:migrate
+#+end_src
+
+Para desfazer a última /migration/, basta executar o comando:
+
+#+begin_src bash
+yarn sequelize db:migrate:undo
+#+end_src
+
+Para desfazer *todas* as migrations:
+
+#+begin_src bash
+yarn sequelize db:migrate:undo:all
+#+end_src
+
