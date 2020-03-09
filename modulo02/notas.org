@@ -550,3 +550,86 @@ insert_final_newline = true
 
 * Configurando o Sequelize
 
+Começamos criando os diretórios:
+
+- =src/config=: Armazena configurações, ex. configurações de conexão com
+  o BD.
+- =src/database=: Arquivos relacionados ao BD.
+- =src/database/migrations=: Arquivos de /migrations/ do BD.
+- =src/app=: Códigos de regras de negócios, lógica, etc. Ex: Controllers
+  e Models.
+- =src/app/controllers=: Controllers.
+- =src/app/models=: Models.
+
+Criamos, um arquivo =src/config/database.js=. Neste arquivo,
+armazenaremos as credenciais para acessarmos o banco de dados.
+
+Finalmente, adicionamos o Sequelize ao projeto:
+
+#+begin_src bash
+yarn add sequelize
+#+end_src
+
+Também instalamos uma ferramenta extra para o Sequelize em momento de
+desenvolvimento. Esta ferramenta facilita a interação com o Sequelize,
+bem como a criação de /migrations/ e outros atributos relacionados ao
+banco de dados.
+
+#+begin_src bash
+yarn add sequelize-cli -D
+#+end_src
+
+Agora, criamos um arquivo =.sequelizerc= na raiz do diretório. Este
+arquivo possui a sintaxe de JS, e informará ao Sequelize a estrutura
+de projetos que acabamos de criar. Ademais, este arquivo não aceita a
+sintaxe ~import~ / ~export~. Neste arquivo, inseriremos:
+
+#+begin_src js
+// -*- mode: rjsx -*-
+const { resolve } = require('path');
+
+module.exports = {
+    config: resolve(__dirname, 'src', 'config', 'database.js'),
+    'models-path': resolve(__dirname, 'src', 'app', 'models'),
+    'migrations-path': resolve(__dirname, 'src', 'database', 'migrations'),
+    'seeders-path': resolve(__dirname, 'src', 'database', 'seeds'),
+};
+#+end_src
+
+Retornando a =config/database.js=, também exportaremos um objeto, desta
+vez também com a sintaxe de CommonJS.
+
+Pela [[https://sequelize.org/v5/manual/dialects.html][Documentação do Sequelize]], há vários dialetos de bancos de dados
+que podemos utilizar. Aqui, utilizaremos PostgreSQL. Assim, é
+necessário instalar as seguintes dependências:
+
+#+begin_src bash
+yarn add pg pg-hstore
+#+end_src
+
+No arquivo, informamos o /dialeto/ utilizado, as credenciais, o banco de
+dados a ser utilizado na aplicação (previamente criado), e então
+realizamos algumas definições:
+
+- =timestamps: true=: Garante a criação de colunas de /timestamps/
+  automática (=created_at=, =updated_at=) para armazenar dados de criação e
+  atualização de cada registro.
+- =underscored: true=, =underscoredAll: true=: Padroniza os nomes de
+  tabelas e colunas com um padrão ~snake_case~ ao invés de ~camelCase~.
+
+O arquivo, na íntegra, ficará desta forma:
+
+#+begin_src js
+module.exports = {
+    dialect: 'postgres',
+    host: 'localhost',
+    username: 'postgres',
+    password: 'docker',
+    database: 'gobarber',
+    define: {
+        timestamps: true,
+        underscored: true,
+        underscoredAll: true,
+    },
+};
+#+end_src
