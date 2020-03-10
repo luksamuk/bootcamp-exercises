@@ -817,7 +817,7 @@ banco de dados. A rota ficaria dessa forma:
 
 #+begin_src js
 routes.get('/', async (req, res) => {
-    const user = await User.create({
+    const user = await User.createcom ({
         name: 'Fulano de Tal',
         email: 'fulano@exemplo.com',
         password_hash: '12341234123',
@@ -992,3 +992,146 @@ Este token é composto de três partes, separadas por pontos:
   nome, e-mail...);
 - *Assinatura*: Um /checksum/. Garante que o token não foi modificado
   externamente.
+
+** Autenticação JWT
+
+Começaremos criando um Controller chamado =SessionController=. É
+interessante lembrar que este /controller/ cria uma *Sessão*, e não um
+*Usuário*; sendo estas duas entidades diferentes, é essencial que
+tenhamos /controllers/ diferentes para cada uma, ainda que apenas
+usuários possam se autenticar. Ademais, um /controller/ só pode possuir
+um método =store=; mesmo que forçássemos esta operação no /controller/ de
+usuário, não seria possível recriar este método.
+
+Também importaremos o /model/ de usuário e instalaremos uma nova
+biblioteca para lidarmos com JWT:
+
+#+begin_src bash
+yarn add jsonwebtoken
+#+end_src
+
+Também importaremos o JWT:
+
+#+begin_src js
+import jwt from 'jsonwebtoken';
+#+end_src
+
+No método assíncrono =store=, tomaremos o =email= e a =senha= do corpo da
+requisição. Verificamos, em seguida, se existe um usuário com aquele
+email.
+
+#+begin_src js
+const { email, password } = req.body;
+
+const user = await User.findOne({ where: { email } });
+
+if(!user) {
+    return res.status(401).json({ error: 'User not found' });
+}
+#+end_src
+
+Caso a execução prossiga, resta verificar se a senha do usuário é a
+mesma informada. Para tanto, voltaremos ao /model/ de usuário e
+criaremos *nele* a verificação para a senha do usuário. Isto pode ser
+ali feito uma vez que não se trata de uma regra de negócio. Faremos,
+então, um método para a classe =User=:
+
+#+begin_src js
+checkPassword(password) {
+    return bcrypt.compare(password, this.password_hash);
+}
+#+end_src
+
+De volta ao =SessionController=, realizamos tal comparação, como
+necessário. Veja que a comparação exige o uso de =await=, uma vez que a
+comparação de hash é assíncrona.
+
+#+begin_src js
+if (!(await user.checkPassword(password))) {
+    return res.status(401).json({ error: 'Password does not match' });
+}
+#+end_src
+
+Agora, tomamos o =id= e o =name= do usuário, que serão retornados no
+token (isto é arbitrário), e então retornamos os dados de usuário e o
+token prometido, através do JWT.
+
+Para /assinar/ o token, enviamos três elementos. O primeiro é o *payload*,
+sendo o mesmo um objeto JSON, aqui contendo apenas o =id= do usuário. O
+segundo é uma *string única* contendo uma /chave secreta/ para a
+aplicação.
+
+*NOTA*: Existem muitas formas de gerar esta chave. No curso, utiliza-se
+o MD5 de uma certa string; pessoalmente, eu utilizarei o comando...
+
+#+begin_src bash
+openssl rand -base64 27
+#+end_src
+
+...para gerar uma chave randômica de alguns caracteres.
+
+A melhor alternativa provavelmente seria usar o programa =openssl= para
+gerar um esquema de chave pública e privada, com um algoritmo mais
+seguro. Mas não precisamos complicar isto agora. [[https://stackoverflow.com/questions/50943739/how-do-i-get-a-key-for-jsonwebtoken-secret][Este link]] parece
+possuir informações com um direcionamento relevante.
+
+O terceiro parâmetro seria um objeto, com alguns parâmetros para o
+/token/. Isto envolve uma data de expiração, por exemplo.
+
+Abaixo, o fragmento de código em questão:
+
+#+begin_src js
+const { id, name } = user;
+
+return res.json({
+    user: {
+        id,
+        name,
+        email,
+    },
+    token: jwt.sign({ id }, 'lRVIWIcw63yvytynhbmTmzE66w6YDYLW3rE0', {
+        expiresIn: '7d',
+    }),
+});
+#+end_src
+
+** Definindo a rota de sessão
+
+Vamos agora ao arquivo de rotas, e definimos uma rota que aceita um
+método =POST= para autenticação:
+
+#+begin_src js
+routes.post('/sessions', SessionController.store);
+#+end_src
+
+Podemos testar esta rota, agora, no Insomnia, com uma requisição =POST=
+para =/sessions=, onde o corpo será apenas um JSON com os campos =email= e
+=password=.
+
+** Separação da chave secreta e da expiração
+
+Criaremos um arquivo =src/config/auth.js=, onde colocaremos as
+informações de chave secreta e de expiração de token JWT:
+
+#+begin_src js
+export default {
+    secret: 'lRVIWIcw63yvytynhbmTmzE66w6YDYLW3rE0',
+    expiresIn: '7d',
+};
+#+end_src
+
+Finalmente, em =SessionController=, importaremos a configuração como
+módulo e atualizamos o retorno em JSON mediante sucesso.
+
+#+begin_src js
+return res.json({
+    user: {
+        id,
+        name,
+        email,
+    },
+    token: jwt.sign({ id }, authConfig.secret, {
+        expiresIn: authConfig.expiresIn,
+    }),
+});
+#+end_src
