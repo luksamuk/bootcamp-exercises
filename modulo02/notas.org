@@ -2,6 +2,7 @@
 #+AUTHOR: Lucas S. Vieira
 #+EMAIL: lucasvieira@protonmail.com
 #+PROPERTY: header-args :eval no
+#+STARTUP: content
 
 * Introdução
 
@@ -377,7 +378,7 @@ class UserController
 }
 #+end_src
 
-* ESLint, Pretties e EditorConfig
+* ESLint, Prettier e EditorConfig
 
 ** ESLint
 

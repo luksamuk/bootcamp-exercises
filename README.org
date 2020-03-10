@@ -23,8 +23,41 @@ específicos do Bootcamp ao qual seu nome está associado.
 
 ** Módulos
 
-- =modulo01=: Módulo 1 - Node.js
-- =modulo02=: Módulo 2 - GoBarber
+Abaixo, uma lista de módulos com seus tópicos pertinentes.
+
+- =modulo01=: [[./modulo01/notas.org][Módulo 1 - Node.js]]
+  - Inicialização
+  - Adição de dependências
+  - Express: Requisições e Respostas
+  - Express: Parâmetros de entrada
+    - Query params
+    - Route params
+    - Request body
+  - Nodemon
+  - CRUD
+  - Middlewares
+    - Globais
+    - Locais
+- =modulo02=: [[./modulo02/notas.org][Módulo 2 - GoBarber]]
+  - Estrutura de projeto
+  - Nodemon + Sucrase
+  - Docker
+    - Usando PostgreSQL pelo Docker
+  - MVC
+    - Sequelize
+    - Migrations
+    - Seeds
+    - Arquitetura MVC
+  - ESLint, Prettier, EditorConfig
+  - Configuração do Sequelize
+  - Migration de usuário
+  - Model de usuário
+  - Carregador de Models
+  - Cadastro de usuários
+  - Hash de senhas
+  - Autenticação JWT
+    - Rota de sessão
+    - Separação de detalhes da autenticação
 
 ** Desafios
 

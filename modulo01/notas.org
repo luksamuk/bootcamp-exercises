@@ -2,7 +2,7 @@
 #+AUTHOR: Lucas S. Vieira
 #+EMAIL: lucasvieira@protonmail.com
 #+PROPERTY: header-args :eval no
-
+#+STARTUP: content
 
 * Inicialização do repositório
 
@@ -12,7 +12,7 @@ Ligeiramente diferente do uso de node cru.
 yarn init -y
 #+end_src
 
-* Adicionando uma dependência ao projeto
+* Adicionando uma dependência
 
 Também diferente com yarn.
 
