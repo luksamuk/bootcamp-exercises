@@ -975,3 +975,20 @@ static init(sequelize) {
  sem fornecer =password= parece dar a possibilidade de manipularmos o
  hash da senha na hora do cadastro. Talvez seja legal consertar isso
  posteriormente! Vou deixar anotado no código para me lembrar.
+
+* Conceitos de JWT
+
+JSON Web Token, ou JWT, é um tipo de método para autenticação em serviços
+REST. A ideia é criarmos uma rota capaz de ouvir um método =POST=, onde
+poderíamos receber o =email= e a =password= de um usuário, por exemplo. A
+partir daí, o serviço consulta a base de dados, da forma como for
+necessário, e então gera um /token JWT/.
+
+Este token é composto de três partes, separadas por pontos:
+
+- *Headers*: Informações que definem o tipo de token gerado. Não muito
+  relevante para o serviço em si;
+- *Payload*: Informações não-sensíveis do usuário autenticado (ex: ID,
+  nome, e-mail...);
+- *Assinatura*: Um /checksum/. Garante que o token não foi modificado
+  externamente.
