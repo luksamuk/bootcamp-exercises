@@ -916,3 +916,62 @@ return res.json({
     provider,
 });
 #+end_src
+
+* Gerando hash da senha
+
+Ao invés de esperarmos que o usuário envie seu =password_hash=,
+esperaremos por uma senha em um campo =password=, e então geraremos
+remotamente o /hash/ desta senha, que será então armazenado em banco de
+dados.
+
+Para tanto, utilizaremos uma implementação de =bcrypt= para Node:
+
+#+begin_src js
+yarn add bcryptjs
+#+end_src
+
+No /Model/ de usuário, importaremos o =bcrypt=, e então criaremos um novo
+campo =password= no Model, de tipo =VIRTUAL=. Veja que estes campos não
+precisam ser um reflexo dos dados que estão sendo preenchidos no banco
+de dados; ademais, campos de tipo =VIRTUAL= são campos que não deverão
+existir na base de dados.
+
+Após a chamada a =super.init=, chamemos =this.addHook= para adicionar um
+/hook/ ao processo de criação do usuário, antes do salvamento na base de
+dados. Hooks são clausuras executadas automaticamente, baseadas em
+ações que ocorrem no /model/.
+
+Neste hook, recebemos o usuário como parâmetro, e preencheremos
+=password_hash=, com base em =password=. Este preenchimento baseia-se numa
+geração de hash em oito /rounds/. Vejamos o código final:
+
+#+begin_src js
+static init(sequelize) {
+    super.init(
+        {
+            name: Sequelize.STRING,
+            email: Sequelize.STRING,
+            password: Sequelize.VIRTUAL,
+            password_hash: Sequelize.STRING,
+            provider: Sequelize.BOOLEAN,
+        },
+        {
+            sequelize,
+        }
+    );
+
+    this.addHook('beforeSave', async user => {
+        if (user.password) {
+            user.password_hash = await bcrypt.hash(user.password, 8);
+        }
+    });
+
+    return this;
+}
+#+end_src
+
+*NOTA:* Tenho a impressão de que temos um problema de segurança
+ aqui. Pela forma como o sistema foi projetado, passar =password_hash=
+ sem fornecer =password= parece dar a possibilidade de manipularmos o
+ hash da senha na hora do cadastro. Talvez seja legal consertar isso
+ posteriormente! Vou deixar anotado no código para me lembrar.
