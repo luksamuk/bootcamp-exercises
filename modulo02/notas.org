@@ -843,3 +843,76 @@ ated_at","updated_at") VALUES (DEFAULT,$1,$2,$3,$4,$5) RETURNING *;
 
 A aba /Content/ do Postbird também pode ser utilizada para verificar se
 os dados foram criados.
+
+* Cadastro de usuários
+
+Criaremos o arquivo =src/app/controllers/UserController.js=. Aqui, só
+precisaremos criar uma classe =UserController=, e exportar uma instância
+da mesma por padrão. Ademais, criamos um método assíncrono chamado
+=store=, que possui a mesma face de um /middleware/ do Express (recebendo
+uma /requisição/ e um callback de /resposta/). Esta função também
+retornará alguma resposta em JSON. Ficamos, por enquanto, com um
+código como o listado a seguir.
+
+#+begin_src js
+import User from '../models/User';
+
+class UserController {
+    async store(req, res) {
+        return res.json();
+    }
+}
+
+export default new UserController();
+#+end_src
+
+A criação em si do usuário é uma operação assíncrona (por ser
+relacionada ao banco de dados), e podemos consumir todo o corpo da
+requisição diretamente, pois o /model/ de usuário já define os campos a
+serem consumidos na requisição. Por fim, retornamos o usuário
+cadastrado na resposta:
+
+#+begin_src js
+async store(req, res) {
+    const user = await User.create(req.body);
+    return res.json(user);
+}
+#+end_src
+
+Retornando às rotas, podemos importar o /controller/ de usuário;
+removemos a rota para testes anteriormente utilizada, e então
+criaremos uma rota do tipo =POST= para cadastro; também podemos remover
+a dependência do /model/ de usuário:
+
+#+begin_src js
+routes.post('/users', UserController.store);
+#+end_src
+
+Podemos testar esta rota com uma requisição =POST= através do Insomnia.
+
+O =UserController= não realiza verificações quanto a e-mails
+duplicados. Para tanto, precisamos verificar, no método =store=, se um
+usuário com tal email já não existe:
+
+#+begin_src js
+const userExists = await User.findOne({
+    where: { email: req.body.email },
+});
+
+if (userExists) {
+    return res.status(400).json({ error: 'User already exists' });
+}
+#+end_src
+
+Finalmente, é ideal que retornemos ao frontend apenas os campos do
+usuário que julgamos necessários. Façamos as alterações em =store=:
+
+#+begin_src js
+const { id, name, email, provider } = await User.create(req.body);
+return res.json({
+    id,
+    name,
+    email,
+    provider,
+});
+#+end_src
